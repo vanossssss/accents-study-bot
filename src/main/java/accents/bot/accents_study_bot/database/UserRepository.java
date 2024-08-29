@@ -1,4 +1,4 @@
-package accents.bot.accents_study_bot.userDataBase;
+package accents.bot.accents_study_bot.database;
 
 import org.springframework.data.repository.CrudRepository;
 

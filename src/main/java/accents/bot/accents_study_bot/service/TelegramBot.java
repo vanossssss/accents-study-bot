@@ -1,8 +1,8 @@
 package accents.bot.accents_study_bot.service;
 
 import accents.bot.accents_study_bot.config.BotConfig;
-import accents.bot.accents_study_bot.userDataBase.User;
-import accents.bot.accents_study_bot.userDataBase.UserRepository;
+import accents.bot.accents_study_bot.database.User;
+import accents.bot.accents_study_bot.database.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
@@ -34,6 +34,8 @@ public class TelegramBot extends TelegramLongPollingBot {
                     case "/start":
                         startCommandReceived(chatId);
                         break;
+                    case "/test":
+                        break;
                     case "/help":
                         helpCommandReceived(chatId);
                         break;
@@ -41,11 +43,6 @@ public class TelegramBot extends TelegramLongPollingBot {
                         sendMessage(chatId, "Неизвестная команда, для полного списка команд введите /help");
                         break;
                 }
-//                Message inputMessage = update.getMessage();
-//                SendMessage outputMessage = new SendMessage();
-//                outputMessage.setChatId(inputMessage.getChatId());
-//                outputMessage.setText("loh");
-//                execute(outputMessage);
             }
     }
 
@@ -55,13 +52,17 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     private void registerUser(long chatId) {
-        if(userRepository.findById(chatId).isEmpty()) {
+        if(userRepository.existsById(chatId)) {
             User user = new User();
 
             user.setUserId(chatId);
             user.setFlagStartTest(false);
             userRepository.save(user);
         }
+    }
+
+    private void testCommandReceived(long chatId) {
+
     }
 
     private void helpCommandReceived(long chatId) {
