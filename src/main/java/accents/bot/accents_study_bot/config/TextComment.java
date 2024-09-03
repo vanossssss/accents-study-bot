@@ -8,4 +8,7 @@ public class TextComment {
     public static final String START_COMMAND =
             "Привет, это телеграм-бот для проверки ударений в словах,\n" +
                     "узнать о его функционале поподробнее ты можешь с помощью команды /help";
+
+    public static final String TEST_QUESTION =
+            "Как правильно ставится ударение в слове ";
 }

@@ -12,6 +12,14 @@ public class Accent {
     private String wrong;
     private String right;
 
+    public void setAccentId(long accentId) {
+        this.accentId = accentId;
+    }
+
+    public long getAccentId() {
+        return accentId;
+    }
+
     public String getWrong() {
         return wrong;
     }
