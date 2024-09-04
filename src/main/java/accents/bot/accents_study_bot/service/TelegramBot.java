@@ -1,6 +1,8 @@
 package accents.bot.accents_study_bot.service;
 
 import accents.bot.accents_study_bot.config.BotConfig;
+import accents.bot.accents_study_bot.database.Accent;
+import accents.bot.accents_study_bot.database.AccentRepository;
 import accents.bot.accents_study_bot.database.User;
 import accents.bot.accents_study_bot.database.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +17,6 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
-import javax.management.Query;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -25,6 +26,8 @@ import static accents.bot.accents_study_bot.config.TextComment.*;
 public class TelegramBot extends TelegramLongPollingBot {
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private AccentRepository accentRepository;
     final BotConfig config;
 
     public TelegramBot(BotConfig config) {
@@ -70,7 +73,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 }
 
                 else if (callbackData.equals("RIGHT_BUTTON")) {
-                    String text = "Верно!";
+                    String text = "Верно! Следующий вопрос...";
                     EditMessageText message = new EditMessageText();
                     message.setChatId(chatId);
                     message.setText(text);
@@ -80,6 +83,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                     } catch (TelegramApiException e) {
                         System.out.println("Error occurred");
                     }
+                    testCommandReceived(chatId);
                 }
             }
     }
@@ -100,21 +104,24 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     private void testCommandReceived(long chatId) {
+        Accent testAccent;
+        testAccent = accentRepository.findByRandom();
+
         SendMessage message = new SendMessage();
         message.setChatId(String.valueOf(chatId));
-        message.setText(TEST_QUESTION);
+        message.setText(TEST_QUESTION + testAccent.getRight().toLowerCase() + "?");
 
         InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
         List<InlineKeyboardButton> rowInline = new ArrayList<>();
         var wrongButton = new InlineKeyboardButton();
 
-        wrongButton.setText("wrong");
+        wrongButton.setText(testAccent.getWrong());
         wrongButton.setCallbackData("WRONG_BUTTON");
 
         var rightButton = new InlineKeyboardButton();
 
-        rightButton.setText("right");
+        rightButton.setText(testAccent.getRight());
         rightButton.setCallbackData("RIGHT_BUTTON");
 
         rowInline.add(wrongButton);
