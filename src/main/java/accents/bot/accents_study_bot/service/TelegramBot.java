@@ -29,6 +29,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     @Autowired
     private AccentRepository accentRepository;
     final BotConfig config;
+    int score = 0;
 
     public TelegramBot(BotConfig config) {
         this.config = config;
@@ -39,16 +40,25 @@ public class TelegramBot extends TelegramLongPollingBot {
             if(update.hasMessage()&&update.getMessage().hasText()) {
                 String messageText = update.getMessage().getText();
                 long chatId = update.getMessage().getChatId();
+                User user = userRepository.findByUserId(chatId);
 
                 switch (messageText) {
                     case "/start":
                         startCommandReceived(chatId);
                         break;
                     case "/test":
-                        testCommandReceived(chatId);
+                        if(user.isFlagStartTest()) {
+                            sendMessage(chatId, DURING_TEST);
+                        }
+                        else {
+                            testCommandReceived(chatId);
+                        }
                         break;
                     case "/help":
                         helpCommandReceived(chatId);
+                        break;
+                    case "/cancel":
+                        cancelCommandReceived(chatId);
                         break;
                     default:
                         sendMessage(chatId, "Неизвестная команда, для полного списка команд введите /help");
@@ -58,32 +68,49 @@ public class TelegramBot extends TelegramLongPollingBot {
                 String callbackData = update.getCallbackQuery().getData();
                 long messageId = update.getCallbackQuery().getMessage().getMessageId();
                 long chatId = update.getCallbackQuery().getMessage().getChatId();
+                User user = userRepository.findByUserId(chatId);
 
-                if (callbackData.equals("WRONG_BUTTON")) {
-                    String text = "Не верно!";
+                if (user.isFlagStartTest()) {
+                    if (callbackData.equals("WRONG_BUTTON")) {
+                        user.setFlagStartTest(false);
+                        user.setScore(score);
+                        userRepository.save(user);
+
+                        String text = "Не верно! Ваш результат: " + String.valueOf(user.getScore());
+                        EditMessageText message = new EditMessageText();
+                        message.setChatId(chatId);
+                        message.setText(text);
+                        message.setMessageId((int) messageId);
+                        try {
+                            execute(message);
+                        } catch (TelegramApiException e) {
+                            System.out.println("Error occurred");
+                        }
+                    } else if (callbackData.equals("RIGHT_BUTTON")) {
+                        String text = "Верно! Следующий вопрос...";
+                        score = score + 1;
+                        EditMessageText message = new EditMessageText();
+                        message.setChatId(chatId);
+                        message.setText(text);
+                        message.setMessageId((int) messageId);
+                        try {
+                            execute(message);
+                        } catch (TelegramApiException e) {
+                            System.out.println("Error occurred");
+                        }
+                        testCommandReceived(chatId);
+                    }
+                } else {
+                    String text = "Вы не проходите тестирование!";
                     EditMessageText message = new EditMessageText();
                     message.setChatId(chatId);
                     message.setText(text);
-                    message.setMessageId((int)messageId);
+                    message.setMessageId((int) messageId);
                     try {
                         execute(message);
                     } catch (TelegramApiException e) {
                         System.out.println("Error occurred");
                     }
-                }
-
-                else if (callbackData.equals("RIGHT_BUTTON")) {
-                    String text = "Верно! Следующий вопрос...";
-                    EditMessageText message = new EditMessageText();
-                    message.setChatId(chatId);
-                    message.setText(text);
-                    message.setMessageId((int)messageId);
-                    try {
-                        execute(message);
-                    } catch (TelegramApiException e) {
-                        System.out.println("Error occurred");
-                    }
-                    testCommandReceived(chatId);
                 }
             }
     }
@@ -94,16 +121,21 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     private void registerUser(long chatId) {
-        if(userRepository.existsById(chatId)) {
+        if(!userRepository.existsById(chatId)) {
             User user = new User();
-
             user.setUserId(chatId);
             user.setFlagStartTest(false);
+            user.setScore(0);
             userRepository.save(user);
         }
     }
 
     private void testCommandReceived(long chatId) {
+        User user = userRepository.findByUserId(chatId);
+
+        user.setFlagStartTest(true);
+        userRepository.save(user);
+
         Accent testAccent;
         testAccent = accentRepository.findByRandom();
 
@@ -124,8 +156,13 @@ public class TelegramBot extends TelegramLongPollingBot {
         rightButton.setText(testAccent.getRight());
         rightButton.setCallbackData("RIGHT_BUTTON");
 
-        rowInline.add(wrongButton);
-        rowInline.add(rightButton);
+        if (Math.round(Math.random()) == 0) {
+            rowInline.add(wrongButton);
+            rowInline.add(rightButton);
+        } else {
+            rowInline.add(rightButton);
+            rowInline.add(wrongButton);
+        }
 
         rowsInline.add(rowInline);
 
@@ -133,10 +170,18 @@ public class TelegramBot extends TelegramLongPollingBot {
         message.setReplyMarkup(markupInline);
 
         executeMessage(message);
+
     }
 
     private void helpCommandReceived(long chatId) {
         sendMessage(chatId, HELP_COMMAND);
+    }
+
+    private void cancelCommandReceived(long chatId) {
+        User user = userRepository.findByUserId(chatId);
+        user.setFlagStartTest(false);
+        userRepository.save(user);
+        sendMessage(chatId, CANCEL_TEST);
     }
 
     private void sendMessage(long chatId, String textToSend) {
@@ -150,6 +195,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
         KeyboardRow row = new KeyboardRow();
 
+        row.add("/start");
         row.add("/help");
         row.add("/test");
 

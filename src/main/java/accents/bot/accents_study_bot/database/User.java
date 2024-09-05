@@ -10,6 +10,7 @@ public class User {
     @Id
     private long userId;
     private boolean flagStartTest;
+    private int score;
 
     public long getUserId() {
         return userId;
@@ -25,5 +26,13 @@ public class User {
 
     public void setFlagStartTest(boolean flagStartTest) {
         this.flagStartTest = flagStartTest;
+    }
+
+    public int getScore() {
+        return score;
+    }
+
+    public void setScore(int score) {
+        this.score = score;
     }
 }
