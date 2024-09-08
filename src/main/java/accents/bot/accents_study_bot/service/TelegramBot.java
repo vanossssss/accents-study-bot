@@ -44,24 +44,26 @@ public class TelegramBot extends TelegramLongPollingBot {
 
                 switch (messageText) {
                     case "/start":
-                        startCommandReceived(chatId);
-                        break;
-                    case "/test":
-                        if(user.isFlagStartTest()) {
-                            sendMessage(chatId, DURING_TEST);
-                        }
-                        else {
-                            testCommandReceived(chatId);
-                        }
+                        startCommandReceived(chatId, update.getMessage().getChat().getUserName());
                         break;
                     case "/help":
                         helpCommandReceived(chatId);
                         break;
+                    case "/test":
+                        if(user.isFlagStartTest()) {
+                            sendMessage(chatId, DURING_TEST);
+                        } else {
+                            testCommandReceived(chatId);
+                        }
+                        break;
                     case "/cancel":
                         cancelCommandReceived(chatId);
                         break;
+                    case "/score":
+                        scoreCommandReceived(chatId);
+                        break;
                     default:
-                        sendMessage(chatId, "Неизвестная команда, для полного списка команд введите /help");
+                        sendMessage(chatId, UNKNOWN_COMMAND);
                         break;
                 }
             } else if (update.hasCallbackQuery()) {
@@ -101,7 +103,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                         testCommandReceived(chatId);
                     }
                 } else {
-                    String text = "Вы не проходите тестирование!";
+                    String text = "Вы не начинали новое тестирование!";
                     EditMessageText message = new EditMessageText();
                     message.setChatId(chatId);
                     message.setText(text);
@@ -115,15 +117,20 @@ public class TelegramBot extends TelegramLongPollingBot {
             }
     }
 
-    private void startCommandReceived(long chatId) {
-        registerUser(chatId);
+    private void startCommandReceived(long chatId, String name) {
+        registerUser(chatId, name);
         sendMessage(chatId, START_COMMAND);
     }
 
-    private void registerUser(long chatId) {
+    private void helpCommandReceived(long chatId) {
+        sendMessage(chatId, HELP_COMMAND);
+    }
+
+    private void registerUser(long chatId, String name) {
         if(!userRepository.existsById(chatId)) {
             User user = new User();
             user.setUserId(chatId);
+            user.setName(name);
             user.setFlagStartTest(false);
             user.setScore(0);
             userRepository.save(user);
@@ -173,15 +180,20 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     }
 
-    private void helpCommandReceived(long chatId) {
-        sendMessage(chatId, HELP_COMMAND);
-    }
-
     private void cancelCommandReceived(long chatId) {
         User user = userRepository.findByUserId(chatId);
         user.setFlagStartTest(false);
         userRepository.save(user);
-        sendMessage(chatId, CANCEL_TEST);
+        sendMessage(chatId, CANCEL_SUCCESS);
+    }
+
+    private void scoreCommandReceived(long chatId) {
+        ArrayList<User> scoreBoard = userRepository.findByScore();
+        String scoreBoardText = " Лучшие результаты: \n\n";
+        for(int i = 0; i < scoreBoard.size(); i++) {
+            scoreBoardText += String.valueOf(i + 1) + ". "+ scoreBoard.get(i).getName() + " - " + scoreBoard.get(i).getScore() + "\n";
+        }
+        sendMessage(chatId, scoreBoardText);
     }
 
     private void sendMessage(long chatId, String textToSend) {
@@ -190,21 +202,18 @@ public class TelegramBot extends TelegramLongPollingBot {
         message.setText(textToSend);
 
         ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
-
         List<KeyboardRow> keyboardRows = new ArrayList<>();
-
         KeyboardRow row = new KeyboardRow();
 
         row.add("/start");
         row.add("/help");
         row.add("/test");
+        row.add("/score");
+        row.add("/cancel");
 
         keyboardRows.add(row);
-
         keyboardMarkup.setKeyboard(keyboardRows);
-
         message.setReplyMarkup(keyboardMarkup);
-
         executeMessage(message);
     }
 

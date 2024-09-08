@@ -9,6 +9,7 @@ import jakarta.persistence.Table;
 public class User {
     @Id
     private long userId;
+    private String name;
     private boolean flagStartTest;
     private int score;
 
@@ -19,6 +20,10 @@ public class User {
     public void setUserId(long userId) {
         this.userId = userId;
     }
+
+    public String getName() { return name; }
+
+    public void setName(String name) { this.name = name;}
 
     public boolean isFlagStartTest() {
         return flagStartTest;
