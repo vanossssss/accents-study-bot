@@ -29,7 +29,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     @Autowired
     private AccentRepository accentRepository;
     final BotConfig config;
-    int score = 0;
+    private int score = 0;
 
     public TelegramBot(BotConfig config) {
         this.config = config;
